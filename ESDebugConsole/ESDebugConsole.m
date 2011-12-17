@@ -238,6 +238,8 @@ NO_ARC(
 	
 	if (ISPAD)
 	{
+		if ([self.popoverController isPopoverVisible])
+			return;
 		[self.popoverController presentPopoverFromRect:CGRectMake(0, 0, 10, 10) 
 												inView:gestureRecognizer.view 
 							  permittedArrowDirections:UIPopoverArrowDirectionAny 
@@ -245,6 +247,8 @@ NO_ARC(
 	}
 	else if (ISPHONE)
 	{
+		if (self.window.rootViewController.modalViewController != nil)
+			return;
 		[self.window.rootViewController presentModalViewController:self.navigationController animated:YES];
 	}
 }
