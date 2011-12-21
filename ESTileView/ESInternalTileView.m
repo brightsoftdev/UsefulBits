@@ -107,6 +107,8 @@ NO_ARC(
 		// before returning it so that it's not immediately deallocated when we remove it from the set
 		NO_ARC([[tile retain] autorelease];)
 		[self.reusableTiles removeObject:tile];
+		if ([tile respondsToSelector:@selector(prepareForReuse)])
+			[tile performSelector:@selector(prepareForReuse)];
 	}
 	return tile;
 }
@@ -124,7 +126,7 @@ NO_ARC(
 		self.tileSize = [dataSource tileSizeForTileView:((ESTileView *)self.superview)];
 	if (dataSource && self->_dataSourceCache.dataSourceRespondsToRowCountForTileView)
 		_numberOfRows = [dataSource rowCountForTileView:((ESTileView *)self.superview)];
-	if (dataSource && self->_dataSourceCache.dataSourceRespondsToRowCountForTileView)
+	if (dataSource && self->_dataSourceCache.dataSourceRespondsToColumnCountForTileView)
 		_numberOfColumns = [dataSource columnCountForTileView:((ESTileView *)self.superview)];
 	if (dataSource && self->_dataSourceCache.dataSourceRespondsToNumberOfTilesForTileView)
 		_numberOfTiles = [dataSource numberOfTilesForTileView:((ESTileView *)self.superview)];
