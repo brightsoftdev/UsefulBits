@@ -94,4 +94,13 @@
 	return dictionary;
 }
 
+- (NSUInteger)count
+{
+	__block NSUInteger count;
+	dispatch_sync(_syncQueue, ^(void) {
+		count = CFDictionaryGetCount(_internalDictionary);
+	});
+	return count;
+}
+
 @end

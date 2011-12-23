@@ -32,7 +32,7 @@
 - (void)setObject:(id)obj forKey:(id)key;
 - (void)removeObjectForKey:(id)key;
 - (id)objectForKey:(id)key;
-
+- (NSUInteger)count;
 - (NSDictionary *)copyDictionary;
 
 @end
