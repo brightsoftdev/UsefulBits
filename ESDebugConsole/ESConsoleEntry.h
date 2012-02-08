@@ -1,5 +1,5 @@
 //
-//  ESDebugConsole.h
+//  ESConsoleEntry.h
 //
 //  Copyright Doug Russell 2012. All rights reserved.
 //
@@ -18,34 +18,15 @@
 
 #import <Foundation/Foundation.h>
 
-extern NSString *const kESDebugConsoleAllLogsKey;
+@interface ESConsoleEntry : NSObject
 
-@interface ESDebugConsole : NSObject
-{
-@private
-	// iOS Support
-	id _window;
-	id _popoverController;
-	id _gestureRecognizer;
-	id _navigationController;
-	CGSize _consoleSizeInPopover;
-	// iOS Mail Support
-	id _recipients;
-	id _subject;
-	id _message;
-	id _attachment;
-}
+@property (nonatomic, retain) NSString *applicationIdentifier;
+@property (nonatomic, retain) NSString *message;
+@property (nonatomic, retain) NSDate *date;
 
-/**
- * Shared instance of debug console overlay
- */
-+ (id)sharedDebugConsole;
+@end
 
-/**
- * Dictionary containing arrays of ESConsoleEntry objects
- * Keyed by application identifier.
- * Key kESDebugConsoleAllLogsKey returns an array of console entries for all apps.
- */
-+ (NSDictionary *)getConsole;
-
+@interface ESConsoleEntry ()
+@property (nonatomic, retain) NSString *shortMessage;
+- (id)initWithDictionary:(NSDictionary *)dictionary;
 @end
