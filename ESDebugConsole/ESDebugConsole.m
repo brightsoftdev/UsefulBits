@@ -159,3 +159,20 @@ NO_ARC(
 }
 
 @end
+
+@implementation NSArray (ConsoleFormatting)
+
+- (NSString *)formattedConsoleString
+{
+	NSMutableString *logs = [NSMutableString stringWithString:@"Console Logs: (\n"];
+	for (ESConsoleEntry *entry in self)
+	{
+		[logs appendString:@"---------------\n"];
+		[logs appendString:[entry description]];
+		[logs appendString:@"\n"];
+	}
+	[logs appendString:@"\n)"];
+	return logs;
+}
+
+@end

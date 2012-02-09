@@ -55,3 +55,7 @@ extern NSString *const kESDebugConsoleAllLogsKey;
 + (NSDictionary *)getConsole;
 
 @end
+
+@interface NSArray (ConsoleFormatting)
+- (NSString *)formattedConsoleString;
+@end

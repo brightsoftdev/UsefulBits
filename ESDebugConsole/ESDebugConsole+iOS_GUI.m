@@ -33,8 +33,10 @@
 @end
 
 @interface ESDebugTableViewController : UITableViewController
+@property (nonatomic, retain) NSString *applicationIdentifier;
 @property (nonatomic, retain) NSArray *applicationLogs;
 @property (nonatomic, retain) UISegmentedControl *segmentedControl;
+@property (nonatomic, assign) NSTimer *autoRefreshTimer;
 @end
 
 @interface ESDebugTableViewCell : UITableViewCell
@@ -299,12 +301,18 @@
 	if ([[ESDebugConsole sharedDebugConsole] respondsToSelector:@selector(sendConsoleAsEmail)])
 	{
 		UIBarButtonItem *email = [[UIBarButtonItem alloc] initWithTitle:@"Email Logs" style:UIBarButtonItemStyleBordered target:self action:@selector(email:)];
-		self.toolbarItems = [NSArray arrayWithObjects:
-							 email,
-							 nil];
+		if (ISPAD)
+		{
+			self.navigationItem.rightBarButtonItem = email;
+		}
+		else
+		{
+			self.toolbarItems = [NSArray arrayWithObjects:
+								 email,
+								 nil];
+		}
 		NO_ARC([email release];)
 		[self.navigationController setToolbarHidden:NO animated:NO];
-		[self.navigationController setToolbarItems:self.toolbarItems];
 	}
 	
 	[self refresh:nil];
@@ -358,15 +366,22 @@
 	
 	ESDebugTableViewController *tvc = [ESDebugTableViewController new];
     tvc.contentSizeForViewInPopover = self.contentSizeForViewInPopover;
+	NSString *applicationIdentifier;
 	switch (indexPath.row) {
 		case 0:
-			tvc.applicationLogs = [self.allApplicationLogs objectForKey:kESDebugConsoleAllLogsKey];
+			applicationIdentifier = kESDebugConsoleAllLogsKey;
+			tvc.applicationLogs = [self.allApplicationLogs objectForKey:applicationIdentifier];
+			tvc.applicationIdentifier = applicationIdentifier;
 			break;
 		case 1:
-			tvc.applicationLogs = [self.allApplicationLogs objectForKey:[[[NSBundle mainBundle] infoDictionary] objectForKey:(id)kCFBundleIdentifierKey]];
+			applicationIdentifier = [[NSBundle mainBundle] objectForInfoDictionaryKey:(id)kCFBundleIdentifierKey];
+			tvc.applicationLogs = [self.allApplicationLogs objectForKey:applicationIdentifier];
+			tvc.applicationIdentifier = applicationIdentifier;
 			break;
 		default:
-			tvc.applicationLogs = [self.allApplicationLogs objectForKey:[self.allApps objectAtIndex:indexPath.row-2]];
+			applicationIdentifier = [self.allApps objectAtIndex:indexPath.row-2];
+			tvc.applicationLogs = [self.allApplicationLogs objectForKey:applicationIdentifier];
+			tvc.applicationIdentifier = applicationIdentifier;
 			break;
 	}
 	[self.navigationController pushViewController:tvc animated:YES];
@@ -382,17 +397,41 @@
 
 #pragma mark - Email
 
-- (void)email:(id)sender
+- (void)email:(UIBarButtonItem *)sender
 {
-	[[ESDebugConsole sharedDebugConsole] performSelector:@selector(setMessage:) withObject:[NSString stringWithFormat:@"Console Logs: \n\n%@", [[ESDebugConsole getConsole] objectForKey:kESDebugConsoleAllLogsKey]]];
-	[[ESDebugConsole sharedDebugConsole] performSelector:@selector(sendConsoleAsEmail)];
+	NO_ARC([sender retain];)
+	UIActivityIndicatorView *activity = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite];
+	[activity startAnimating];
+	UIBarButtonItem *activityButton = [[UIBarButtonItem alloc] initWithCustomView:activity];
+	if (ISPAD)
+		self.navigationItem.rightBarButtonItem = activityButton;
+	else
+		self.toolbarItems = [NSArray arrayWithObjects:activityButton, nil];
+	NO_ARC(
+		   [activity release];
+		   [activityButton release];
+		   )
+	dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^(void) {
+		NSArray *logs = [[ESDebugConsole getConsole] objectForKey:kESDebugConsoleAllLogsKey];
+		dispatch_async(dispatch_get_main_queue(), ^(void) {
+			[[ESDebugConsole sharedDebugConsole] performSelector:@selector(setMessage:) withObject:[logs formattedConsoleString]];
+			[[ESDebugConsole sharedDebugConsole] performSelector:@selector(sendConsoleAsEmail)];
+			if (ISPAD)
+				self.navigationItem.rightBarButtonItem = sender;
+			else
+				self.toolbarItems = [NSArray arrayWithObjects:sender, nil];
+			NO_ARC([sender release];)
+		});
+	});
 }
 
 @end
 
 @implementation ESDebugTableViewController
+@synthesize applicationIdentifier=_applicationIdentifier;
 @synthesize applicationLogs=_applicationLogs;
 @synthesize segmentedControl=_segmentedControl;
+@synthesize autoRefreshTimer=_autoRefreshTimer;
 
 #pragma mark - 
 
@@ -412,6 +451,52 @@
 	[super viewDidLoad];
 	
 	self.title = @"Console";
+	
+	UIBarButtonItem *spaceLeft = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil];
+	
+	UILabel *autoRefreshLabel = [[UILabel alloc] init];
+	autoRefreshLabel.text = @"AutoRefresh: ";
+	autoRefreshLabel.backgroundColor = [UIColor clearColor];
+	autoRefreshLabel.font = [UIFont boldSystemFontOfSize:14];
+	autoRefreshLabel.textColor = [UIColor whiteColor];
+	[autoRefreshLabel sizeToFit];
+	UIBarButtonItem *autoRefreshLabelButton = [[UIBarButtonItem alloc] initWithCustomView:autoRefreshLabel];
+	
+	UISwitch *autoRefreshSwitch = [[UISwitch alloc] init];
+	[autoRefreshSwitch addTarget:self action:@selector(switchToggled:) forControlEvents:UIControlEventValueChanged];
+	UIBarButtonItem *autoRefreshSwitchButton = [[UIBarButtonItem alloc] initWithCustomView:autoRefreshSwitch];
+	
+	UIBarButtonItem *spaceRight = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil];
+	
+	if ([[ESDebugConsole sharedDebugConsole] respondsToSelector:@selector(sendConsoleAsEmail)])
+	{
+		UIBarButtonItem *email = [[UIBarButtonItem alloc] initWithTitle:@"Email Logs" style:UIBarButtonItemStyleBordered target:self action:@selector(email:)];
+		self.navigationItem.rightBarButtonItem = email;
+		NO_ARC([email release];)
+	}
+	
+	self.toolbarItems = [NSArray arrayWithObjects:
+						 spaceLeft,
+						 autoRefreshLabelButton,
+						 autoRefreshSwitchButton,
+						 spaceRight,
+						 nil];
+	
+	NO_ARC(
+		   [spaceLeft release];
+		   [autoRefreshLabel release];
+		   [autoRefreshLabelButton release];
+		   [autoRefreshSwitch release];
+		   [autoRefreshSwitchButton release];
+		   [spaceRight release];
+		   )
+}
+
+- (void)viewWillAppear:(BOOL)animated
+{
+	[super viewWillAppear:animated];
+	[self.autoRefreshTimer invalidate];
+	self.autoRefreshTimer = nil;
 }
 
 - (void)viewDidUnload
@@ -474,6 +559,41 @@
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation
 {
 	return YES;
+}
+
+#pragma mark - AutoRefresh
+
+- (void)switchToggled:(UISwitch *)sender
+{
+	if (self.autoRefreshTimer && [self.autoRefreshTimer isValid])
+	{
+		[self.autoRefreshTimer invalidate];
+		self.autoRefreshTimer = nil;
+	}
+	else
+	{
+		self.autoRefreshTimer = [NSTimer scheduledTimerWithTimeInterval:3.0f target:self selector:@selector(refreshTimer:) userInfo:nil repeats:YES];
+	}
+}
+
+- (void)refreshTimer:(NSTimer *)timer
+{
+	//NSLog(@"Refresh");
+	dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
+		NSArray *newLogs = [[ESDebugConsole getConsole] objectForKey:self.applicationIdentifier];
+		dispatch_async(dispatch_get_main_queue(), ^(void) {
+			self.applicationLogs = newLogs;
+			[self.tableView reloadData];
+		});
+	});
+}
+
+#pragma mark - Email
+
+- (void)email:(id)sender
+{
+	[[ESDebugConsole sharedDebugConsole] performSelector:@selector(setMessage:) withObject:[self.applicationLogs formattedConsoleString]];
+	[[ESDebugConsole sharedDebugConsole] performSelector:@selector(sendConsoleAsEmail)];
 }
 
 @end
