@@ -18,22 +18,28 @@
 
 #import <Foundation/Foundation.h>
 
+#if __has_feature(attribute_objc_ivar_unused)
+	#define CATEGORY_IVAR __attribute__((unused))
+#else
+	#define CATEGORY_IVAR
+#endif
+
 extern NSString *const kESDebugConsoleAllLogsKey;
 
 @interface ESDebugConsole : NSObject
 {
 @private
 	// iOS Support
-	id _window;
-	id _popoverController;
-	id _gestureRecognizer;
-	id _navigationController;
-	CGSize _consoleSizeInPopover;
+	id _window CATEGORY_IVAR;
+	id _popoverController CATEGORY_IVAR;
+	id _gestureRecognizer CATEGORY_IVAR;
+	id _navigationController CATEGORY_IVAR;
+	CGSize _consoleSizeInPopover CATEGORY_IVAR;
 	// iOS Mail Support
-	id _recipients;
-	id _subject;
-	id _message;
-	id _attachment;
+	id _recipients CATEGORY_IVAR;
+	id _subject CATEGORY_IVAR;
+	id _message CATEGORY_IVAR;
+	id _attachment CATEGORY_IVAR;
 }
 
 /**

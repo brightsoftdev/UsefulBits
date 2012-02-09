@@ -88,6 +88,83 @@
 
 #pragma mark - Accessors
 
+- (UIGestureRecognizer *)gestureRecognizer
+{
+	return _gestureRecognizer;
+}
+
+- (void)setGestureRecognizer:(UIGestureRecognizer *)gestureRecognizer
+{
+	if (_gestureRecognizer != gestureRecognizer)
+	{
+		if (_gestureRecognizer != nil)
+			[((UIGestureRecognizer *)_gestureRecognizer).view removeGestureRecognizer:_gestureRecognizer];
+		NO_ARC(
+			   [_gestureRecognizer release];
+			   [gestureRecognizer retain];
+			   )
+		_gestureRecognizer = gestureRecognizer;
+	}
+}
+
+- (CGSize)consoleSizeInPopover
+{
+	return _consoleSizeInPopover;
+}
+
+- (void)setConsoleSizeInPopover:(CGSize)consoleSizeInPopover
+{
+	if (!CGSizeEqualToSize(consoleSizeInPopover, _consoleSizeInPopover))
+	{
+		_consoleSizeInPopover = consoleSizeInPopover;
+	}
+}
+
+@end
+
+@implementation ESDebugConsole (iOS_GUI_Private)
+
+#pragma mark - Init/Dealloc
+
+- (void)iOSInit
+{
+	UIWindow *window = [UIApplication sharedApplication].keyWindow;
+	if (!window)
+		window = [[UIApplication sharedApplication].windows objectAtIndex:0];
+	if (window == nil)
+	{
+		[NSException raise:@"Nil Window Exception" format:@"Activated ESDebugConsole without a window to attach to"];
+		return;
+	}
+	if (window.rootViewController == nil && ISPHONE)
+	{
+		[NSException raise:@"Nil Root View Controller Exception" format:@"Activated ESDebugConsole without a root view controller to attach to"];
+		return;
+	}
+	self.window = window;
+    self.consoleSizeInPopover = CGSizeZero;
+	UIRotationGestureRecognizer *rotationGesture = [[UIRotationGestureRecognizer alloc] initWithTarget:self action:@selector(gestureRecognized:)];
+	rotationGesture.cancelsTouchesInView = NO;
+	self.gestureRecognizer = rotationGesture;
+	[window addGestureRecognizer:rotationGesture];
+	NO_ARC([rotationGesture release];)
+	
+	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(lowMemoryWarning:) name:UIApplicationDidReceiveMemoryWarningNotification object:nil];
+}
+
+- (void)iOSDealloc
+{
+	[[NSNotificationCenter defaultCenter] removeObserver:self name:UIApplicationDidReceiveMemoryWarningNotification object:nil];
+	NO_ARC(
+		   [_window release];
+		   [_popoverController release];
+		   [_navigationController release];
+		   [_gestureRecognizer release];
+		   )
+}
+
+#pragma mark - Accessors
+
 - (UIWindow *)window
 {
 	return _window;
@@ -151,79 +228,6 @@
 			   )
 		_navigationController = navigationController;
 	}
-}
-
-- (UIGestureRecognizer *)gestureRecognizer
-{
-	return _gestureRecognizer;
-}
-
-- (void)setGestureRecognizer:(UIGestureRecognizer *)gestureRecognizer
-{
-	if (_gestureRecognizer != gestureRecognizer)
-	{
-		if (_gestureRecognizer != nil)
-			[((UIGestureRecognizer *)_gestureRecognizer).view removeGestureRecognizer:_gestureRecognizer];
-		NO_ARC(
-			   [_gestureRecognizer release];
-			   [gestureRecognizer retain];
-			   )
-		_gestureRecognizer = gestureRecognizer;
-	}
-}
-
-- (CGSize)consoleSizeInPopover
-{
-	return _consoleSizeInPopover;
-}
-
-- (void)setConsoleSizeInPopover:(CGSize)consoleSizeInPopover
-{
-	if (!CGSizeEqualToSize(consoleSizeInPopover, _consoleSizeInPopover))
-	{
-		_consoleSizeInPopover = consoleSizeInPopover;
-	}
-}
-
-@end
-
-@implementation ESDebugConsole (iOS_GUI_Private)
-
-- (void)iOSInit
-{
-	UIWindow *window = [UIApplication sharedApplication].keyWindow;
-	if (!window)
-		window = [[UIApplication sharedApplication].windows objectAtIndex:0];
-	if (window == nil)
-	{
-		[NSException raise:@"Nil Window Exception" format:@"Activated ESDebugConsole without a window to attach to"];
-		return;
-	}
-	if (window.rootViewController == nil && ISPHONE)
-	{
-		[NSException raise:@"Nil Root View Controller Exception" format:@"Activated ESDebugConsole without a root view controller to attach to"];
-		return;
-	}
-	self.window = window;
-    self.consoleSizeInPopover = CGSizeZero;
-	UIRotationGestureRecognizer *rotationGesture = [[UIRotationGestureRecognizer alloc] initWithTarget:self action:@selector(gestureRecognized:)];
-	rotationGesture.cancelsTouchesInView = NO;
-	self.gestureRecognizer = rotationGesture;
-	[window addGestureRecognizer:rotationGesture];
-	NO_ARC([rotationGesture release];)
-	
-	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(lowMemoryWarning:) name:UIApplicationDidReceiveMemoryWarningNotification object:nil];
-}
-
-- (void)iOSDealloc
-{
-	[[NSNotificationCenter defaultCenter] removeObserver:self name:UIApplicationDidReceiveMemoryWarningNotification object:nil];
-	NO_ARC(
-		   [_window release];
-		   [_popoverController release];
-		   [_navigationController release];
-		   [_gestureRecognizer release];
-		   )
 }
 
 @end
