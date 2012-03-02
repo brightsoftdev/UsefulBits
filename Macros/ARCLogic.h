@@ -14,6 +14,9 @@
 #ifdef STRONG
 #undef STRONG
 #endif
+#ifdef __STRONG
+#undef __STRONG
+#endif
 #ifdef WEAK
 #undef WEAK
 #endif
@@ -21,40 +24,32 @@
 #undef __WEAK
 #endif
 
-#if __has_feature(objc_arc)
-#define HASARC 1
-#else
-#define HASARC 0
-#endif
+#define HASARC __has_feature(objc_arc)
 
-#if __has_feature(objc_arc_weak)
-#define HASWEAK 1
-#else
-#define HASWEAK 0
-#endif
+#define HASWEAK __has_feature(objc_arc_weak)
 
 #if HASARC
-#define IF_ARC(ARCBlock) ARCBlock
-#define NO_ARC(NoARCBlock) 
-#define STRONG strong
-#define __STRONG __strong
-#if HASWEAK
-#define __WEAK __weak
-#define WEAK weak
-#define NO_WEAK(NoWeakBlock) 
+	#define IF_ARC(ARCBlock) ARCBlock
+	#define NO_ARC(NoARCBlock) 
+	#define STRONG strong
+	#define __STRONG __strong
+	#if HASWEAK
+		#define __WEAK __weak
+		#define WEAK weak
+		#define NO_WEAK(NoWeakBlock) 
+	#else
+		#define WEAK assign
+		#define __WEAK __unsafe_unretained
+		#define NO_WEAK(NoWeakBlock) NoWeakBlock
+	#endif
 #else
-#define WEAK assign
-#define __WEAK 
-#define NO_WEAK(NoWeakBlock) NoWeakBlock
-#endif
-#else
-#define IF_ARC(ARCBlock) 
-#define NO_ARC(NoARCBlock) NoARCBlock
-#define STRONG retain
-#define __STRONG 
-#define WEAK assign
-#define __WEAK 
-#define NO_WEAK(NoWeakBlock) NoWeakBlock
+	#define IF_ARC(ARCBlock) 
+	#define NO_ARC(NoARCBlock) NoARCBlock
+	#define STRONG retain
+	#define __STRONG 
+	#define WEAK assign
+	#define __WEAK 
+	#define NO_WEAK(NoWeakBlock) NoWeakBlock
 #endif
 
 #endif
